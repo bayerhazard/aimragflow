@@ -119,6 +119,36 @@ CPU gesamt 17/48, RAM 75/187 GiB, GPU 11/48 GiB (weiter idle).
 Restlich langsam (DeepDOC, komplexe Tabellen/Scans): `Bad Bikes Rotwild` 346 s,
 `Fielmann` 367 s; OCR-Scans weiterhin teuer.
 
+### iGPU-Test Embedder (2026-09-14) — negativ
+
+`OV_DEVICE=GPU` (per `settings apps env set`):
+
+```
+Device: GPU
+[WARNING] GPU compile failed, falling back to CPU:
+  Cannot load library "…/libopenvino_intel_gpu_plugin.so":
+  libOpenCL.so.1: cannot open shared object file
+Model loaded and compiled on CPU (fallback) successfully.
+```
+
+Benchmark (idle, 8×batch16 = 128 Texte à ~250 Token):
+
+| Setting | texts/s | ms/Text | 16er-Batch |
+|---|---|---|---|
+| CPU (Baseline) | **0,77** | 1306 | 20,9 s |
+| `OV_DEVICE=GPU` (CPU-Fallback) | **0,77** | 1304 | 20,9 s |
+
+Ursachen: (1) das Image bringt die Intel-OpenCL-/oneAPI-Runtime nicht mit,
+(2) dem Pod fehlt `/dev/dri`. `OV_DEVICE` wieder auf **CPU** zurückgestellt.
+
+Für echten iGPU-Betrieb nötig:
+1. Embedder-Image neu bauen **mit** `intel-opencl-icd`/`libOpenCL.so.1` (+ Level-Zero/oneAPI).
+2. `/dev/dri` in den Pod mounten (Chart) + ggf. Olares-Intel-Compute-Binding.
+3. Danach neu benchmarken (Vergleichswerte oben).
+
+Praktikablerer Hebel ohne iGPU: Embedder-Pod-CPU-Limit (derzeit **8 Cores/Pod**,
+2 Replicas = 16) anheben + `INFERENCE_THREADS`/`NUM_STREAMS` erhöhen.
+
 ### Weitere Optimierungen
 1. **Embedder auf Intel-iGPU** (`OV_DEVICE=GPU`, Olares One hat Arc-iGPU) oder
    mehr Threads/Replicas → entlastet CPU und beschleunigt Embedding.
