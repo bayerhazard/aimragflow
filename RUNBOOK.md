@@ -155,6 +155,54 @@ Hermes already has `agent.gateway_timeout: 1800`; leave it.
 
 ---
 
+## Hermes skill — was der Agent wissen muss
+
+### Endpoints & Auth
+- Base: `https://0112315c.aimighty.olares.de` (identisch `https://kb.<user>.olares.de`).
+- **Agentic RAG (bevorzugt):** `POST /api/v1/chats_openai/<chat_id>/chat/completions`
+  (OpenAI-kompatibel, SSE-fähig).
+- **Nur Chunks:** `POST /api/v1/retrieval` mit
+  `{question, dataset_ids, top_k, similarity_threshold, vector_similarity_weight, rerank_id, keyword, highlight}`.
+- Datasets enumerieren: `GET /api/v1/datasets`.
+- Auth: `Authorization: Bearer <RAGFLOW_API_KEY>` (`ragflow-…`).
+- App-zu-App läuft über die **Entrance-URL**; die Olares-Middleware fügt die
+  Session hinzu. Direkter ClusterIP/Pod-IP-Zugriff ist gesperrt.
+
+### Thinking-Modes
+- `None/Low/Medium/High/Ultra` werden **pro Chat-Assistent** konfiguriert, nicht per Request.
+- **Medium** = Default/Sweetspot.
+- High/Ultra = mehrere LLM-Roundtrips → auf einer RTX 5090 sekunden- bis minutenlang.
+  Nur für Multi-Hop-, Cross-Dokument-, Vergleichs-, Attributionsfragen.
+- Praxis: zwei Assistenten anlegen (`KB` = Medium, `KB-Deep` = Ultra); der Skill
+  wählt nach Fragentyp.
+
+### Verhalten (Grounding)
+- Ausschließlich aus dem RAGFlow-Kontext antworten; sonst die Empty-Response
+  weitergeben („keine passende Stelle in der Wissensbasis").
+- Zitate/Quellen aus der Antwort übernehmen und kenntlich machen; keine erfundenen Belege.
+- Folgefragen im selben Thema über denselben Assistenten (Multi-Turn) führen.
+
+### Timeouts (kritisch)
+- `l4-bfl-proxy`-Default 300 s kappt High/Ultra → Host-Fix (Abschnitt 6).
+- OpenAI-SDK-Read-Timeout 180 s (`x-stainless-read-timeout`) für High/Ultra erhöhen.
+- Hermes `agent.gateway_timeout` = 1800 (bereits gesetzt).
+
+### Modell
+- Der Assistent denkt mit dem Lokal-LLM via LiteLLM (`Analyst`/`Experte`,
+  `reasoning_effort: medium`) — unabhängig von Hermes' eigenem Modell.
+
+### Nicht verwechseln
+- MCP `retrieve` = nur Chunks, **kein** Agentic RAG.
+- `chats_openai` = Agentic RAG (Denkmodus greift).
+
+### Fehlerbilder
+- `302` → SSO-Redirect (falscher Netzwerkpfad, kein Key-Fehler).
+- `401` → API-Key fehlt/falsch.
+- Leere/abgeschnittene Antwort nach ~300 s → l4-Timeout.
+- „Connection error" beim ersten Call → transient, einmal wiederholen.
+
+---
+
 ## Decommissioning the old market.olares RAGFlow
 
 Only after aimragflow is verified:
