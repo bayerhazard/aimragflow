@@ -2,7 +2,13 @@
 
 App: **aimragflow** · chart `26.9.1` · upstream RAGFlow `0.27.2`
 Default entrance: `https://0112315c.<user>.olares.de` (appID `0112315c`)
+Custom route: `https://kb.<user>.olares.de` (third-level `kb`, set after install)
 Namespace: `aimragflow-aimighty`
+Image: `ghcr.io/bayerhazard/aimragflow:v0.27.2-1` (must stay **public** in ghcr)
+
+Deployed state (2026-09-14): app `running`; pods aimragflow/es/minio/redis Running;
+MySQL middleware DB `aimragflow-aimighty_aimragflow` (separate from the old
+`ragflow` app); ES 8.11.3 healthy; `/api/v1/system/healthz` = 200.
 
 After `olares-cli market install aimragflow -s market.AImighty --watch`, work through
 this list top to bottom.
