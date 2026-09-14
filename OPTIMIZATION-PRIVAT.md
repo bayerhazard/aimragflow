@@ -157,6 +157,35 @@ Praktikablerer Hebel ohne iGPU: Embedder-Pod-CPU-Limit (derzeit **8 Cores/Pod**,
    neue leben) ebenfalls auf PlainText, wenn Tabellenstruktur entbehrlich ist.
 4. Scans/Bilder per VLM/OCR-Parser auf die GPU verlagern.
 
+## Embedder-Skalierung (Variant 1) & iGPU — Messung 2026-09-14
+
+Referenz (idle): 8 Threads / 1 Stream / CPU-Limit 8 / cluster = **0,77 Texte/s**.
+
+Getestet per Re-Deploy aus der lokalen Upload-Source (kein öffentlicher Release):
+
+| Config | threads/s | ms/Text | Fazit |
+|---|---|---|---|
+| Baseline (Limit 8, thr 8, stream 1) | **0,77** | 1306 | Referenz |
+| Limit 12, thr 12, **streams 2** | 0,43 | 2321 | viel schlechter |
+| Limit 12, thr 12, streams 1 | 0,58 | 1734 | schlechter |
+| Limit 12, **thr 8**, streams 1 | 0,76 | ~ | = Baseline |
+
+**Ergebnis: Variante 1 bringt nichts.** Der Embedder ist bei 8 Threads/1 Stream
+bereits optimal; mehr Threads (→ E-Core-Überbuchung) und mehr Streams schaden.
+**Kein Release.** Produktions-Embedder auf 26.8.31 zurückgestellt.
+
+**iGPU:** `OV_DEVICE=GPU` scheitert (`libOpenCL.so.1` fehlt) → CPU-Fallback, Benchmark
+identisch. Ein Thin-Layer-Fix ist hier nicht möglich: der Docker-Daemon dieser
+Sandbox kann keine RUN-Schritte bauen (overlayfs), und die Debian-bookworm-Basis
+bringt keinen Arrow-Lake-tauglichen Intel-Treiber mit. Nötig wäre ein **neu
+gebautes Basis-Image (Ubuntu 24.04 + Intel-Compute-Runtime)** plus Device-Plugin-
+Request `gpu.intel.com/i915` (der `olares`-Node exponiert die iGPU) → Aufwand hoch,
+Erfolg unsicher, Nutzen bei nur 4 Xe-Kernen begrenzt.
+
+**Konsequenz:** Für Ingest-Speed ist der CPU-Embedder ausgereizt. Echter Sprung nur
+über einen **GPU-Embedder (CUDA/vLLM auf der RTX 5090)** — neues App-Chart, ~2–4 GB
+VRAM neben Reranker/TTS. Für den 36-Dokumente-Bestand nicht nötig.
+
 ## Nächste Schritte
 1. KB „Privat": `language=German` + optimierte `parser_config` setzen.
 2. VLM als Image2Text hinterlegen.
