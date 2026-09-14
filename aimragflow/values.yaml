@@ -1,0 +1,11 @@
+workloads:
+  redis:
+    replicaCount: 1
+  aimragflow:
+    replicaCount: 1
+  minio:
+    replicaCount: 1
+  elasticsearch:
+    replicaCount: 1
+olaresEnv:
+  HF_ENDPOINT: ""

@@ -1,0 +1,125 @@
+olaresManifest.version: '0.12.0'
+olaresManifest.type: app
+apiVersion: 'v3'
+
+workloadReplicas:
+  elasticsearch: 1
+  minio: 1
+  aimragflow: 1
+  redis: 1
+
+metadata:
+  name: aimragflow
+  description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
+  icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
+  appid: aimragflow
+  version: '26.9.1'
+  title: AIM RAGFlow
+  categories:
+  - AI
+
+entrances:
+- name: aimragflow
+  host: aimragflow
+  port: 80
+  title: AIM RAGFlow
+  icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
+  authLevel: private
+  openMethod: window
+
+permission:
+  appData: true
+  appCache: true
+
+spec:
+  versionName: '0.27.2'
+  featuredImage: https://app.cdn.olares.com/appstore/ragflow/1.webp
+  promoteImage:
+  - https://app.cdn.olares.com/appstore/ragflow/1.webp
+  - https://app.cdn.olares.com/appstore/ragflow/2.webp
+  - https://app.cdn.olares.com/appstore/ragflow/3.webp
+  - https://app.cdn.olares.com/appstore/ragflow/4.webp
+  - https://app.cdn.olares.com/appstore/ragflow/5.webp
+  fullDescription: |
+    AIM RAGFlow — a self-hosted RAG engine (upstream RAGFlow 0.27.2) repackaged
+    for Olares and optimized for use from the Hermes Agent.
+
+    **Model**
+    Knowledge/retrieval backend. Runs documents through DeepDoc parsing, chunking,
+    embedding and optional knowledge compilation; answers via Agentic RAG.
+
+    **Inference Engine**
+    Upstream RAGFlow 0.27.2 (`infiniflow/ragflow:v0.27.2`), patched for Olares
+    (see image). Document engine: Elasticsearch 8.11.3. Object storage: MinIO.
+    Cache/queue: Valkey 8. Metadata: shared MySQL middleware.
+
+    **Key Features**
+    - Agentic RAG with thinking modes None / Low / Medium / High / Ultra (v0.27.0, refactored in v0.27.2).
+    - Knowledge Compilation: Wiki, Graph, Tree, PageIndex, Mind Map, Timeline, To Skills (replaces GraphRAG/RAPTOR).
+    - OpenAI-compatible chat endpoint `/api/v1/chats_openai/<chat_id>` and a RAGFlow MCP server (`retrieve`).
+    - Olares tuning baked in: MAX_CONCURRENT_CHUNK_BUILDERS=4, DOC_BULK_SIZE=50, EMBEDDING_BATCH_SIZE=16, close_stale age=3600, CPU 10 / RAM 12Gi.
+
+    **API**
+    Web UI at the entrance; OpenAI-compatible API via an API key. Wire Hermes via
+    the chat-assistant endpoint (Agentic RAG) or the MCP `retrieve` tool (chunks).
+
+    **Resource Usage**
+    CPU: 2-10 cores
+    RAM: 8-12 GiB (plus Elasticsearch/MinIO/Redis)
+    Disk: appData volumes for logs, ES, MinIO, Redis
+
+  upgradeDescription: |
+    v26.9.1: Initial AIM release — RAGFlow 0.27.2 (`infiniflow/ragflow:v0.27.2`).
+    Repackaged from the Olares chart 1.0.30 with Olares tuning baked in:
+    MAX_CONCURRENT_CHUNK_BUILDERS=4, DOC_BULK_SIZE=50, EMBEDDING_BATCH_SIZE=16
+    and close_stale(age=3600); ragflow container limited to CPU 10 / RAM 12Gi.
+    Infinity companion removed (DOC_ENGINE=elasticsearch). Built for Olares 1.12.6.
+
+    Upstream highlights since 0.26.4
+    - 0.27.0: Agentic RAG with four thinking modes; Knowledge Compilation (Wiki, Graph, Tree, PageIndex, Mind Map, Timeline, To Skills); GraphRAG/RAPTOR deprecated.
+    - 0.27.1: metadata filter pushdown, retrieval API exposes rerank_candidates_count / top_k / num_candidates.
+    - 0.27.2: Agentic RAG refactor (reasoning speed + benchmark gains), knowledge compilation runtime settings and rate limit.
+
+    Full release notes: https://github.com/infiniflow/ragflow/releases/tag/v0.27.2
+
+  developer: Aimighty
+  website: https://ragflow.io/
+  sourceCode: https://github.com/bayerhazard/aimragflow
+  submitter: Aimighty
+  locale:
+  - en-US
+  doc: https://ragflow.io/docs/
+  license:
+  - text: Apache-2.0
+    url: https://github.com/infiniflow/ragflow#Apache-2.0-1-ov-file
+  requiredMemory: 7680Mi
+  limitedMemory: 28Gi
+  requiredDisk: 56Mi
+  limitedDisk: 1Gi
+  requiredCpu: 3150m
+  limitedCpu: 13
+  supportArch:
+  - amd64
+
+options:
+  apiTimeout: 0
+  dependencies:
+  - name: olares
+    type: system
+    version: '>=1.12.6-0'
+  - name: mysql
+    type: middleware
+    version: '>=8.0.0'
+
+middleware:
+  mysql:
+    username: aimragflow
+    databases:
+      - name: aimragflow
+
+envs:
+  - envName: HF_ENDPOINT
+    required: true
+    applyOnChange: true
+    valueFrom:
+      envName: OLARES_USER_HUGGINGFACE_SERVICE

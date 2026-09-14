@@ -1,0 +1,6 @@
+apiVersion: v2
+appVersion: '0.27.2'
+description: AIM RAGFlow — RAG engine for Olares, optimized for Hermes Agent
+name: aimragflow
+type: application
+version: '26.9.1'
