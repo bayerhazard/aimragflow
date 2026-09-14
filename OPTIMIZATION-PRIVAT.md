@@ -96,6 +96,37 @@ Eine Ingestion-Pipeline ist nur gerechtfertigt, wenn:
 - `Tesla Model 3 Handbuch.pdf` (11,7 MB/247 S.): Parsezeit und Chunkmenge hoch;
   ggf. per Page-Range aufteilen (Dataflow) oder bewusst roh lassen.
 
+## Umgesetzt & gemessen (2026-09-14)
+
+Chart `26.9.2`: ragflow CPU 10 → **20**, RAM 12 → **16 GiB**, Env
+`TABLE_AUTO_ROTATE=false` (Default), `limitedCpu 24`. Delimiter-Bug (`'"\n\n"'`)
+korrigiert. 13 narrative Text-PDFs auf `layout_recognize: Plain Text`
+(Dokument-Level via PATCH); Formulare/Scans/Tabellen bleiben DeepDOC.
+
+Messung während des Re-Ingests:
+
+| Metrik | vorher | nachher |
+|---|---|---|
+| ragflow CPU | konstant 10,0 (=Limit) | bis 20,0 (=neues Limit), dann Einbrüche |
+| Table analysis | 104–188 s/Seite | ~1 s (Tag Heuer Task: ~150 s → **33 s**) |
+| Chunks / ~5 min | 86 | 256–341 |
+| Fehler | 0 | 0 |
+
+**Neuer Engpass: der CPU-Embedder** (`aimembqwen3vino`) — 12–15 Cores, während
+ragflow zeitweise bei 0,16 Cores idle wartet (Backpressure durch Embedding).
+CPU gesamt 17/48, RAM 75/187 GiB, GPU 11/48 GiB (weiter idle).
+
+Restlich langsam (DeepDOC, komplexe Tabellen/Scans): `Bad Bikes Rotwild` 346 s,
+`Fielmann` 367 s; OCR-Scans weiterhin teuer.
+
+### Weitere Optimierungen
+1. **Embedder auf Intel-iGPU** (`OV_DEVICE=GPU`, Olares One hat Arc-iGPU) oder
+   mehr Threads/Replicas → entlastet CPU und beschleunigt Embedding.
+2. `MAX_CONCURRENT_CHUNK_BUILDERS` 4 → 8–12 (nutzt die 20 Cores besser).
+3. Restliche langsame Text-PDFs (Bad Bikes, Fielmann, HUK24, CosmosDirekt,
+   neue leben) ebenfalls auf PlainText, wenn Tabellenstruktur entbehrlich ist.
+4. Scans/Bilder per VLM/OCR-Parser auf die GPU verlagern.
+
 ## Nächste Schritte
 1. KB „Privat": `language=German` + optimierte `parser_config` setzen.
 2. VLM als Image2Text hinterlegen.
