@@ -87,6 +87,8 @@ spec:
           value: 'python'
         - name: DOC_ENGINE
           value: 'elasticsearch'
+        - name: TABLE_AUTO_ROTATE
+          value: '{{ .Values.olaresEnv.TABLE_AUTO_ROTATE }}'
         - name: MAX_CONCURRENT_CHUNK_BUILDERS
           value: '4'
         - name: DOC_BULK_SIZE
@@ -135,8 +137,8 @@ spec:
               key: MINIO_PASSWORD
         resources:
           limits:
-            cpu: "10"
-            memory: 12Gi
+            cpu: "20"
+            memory: 16Gi
           requests:
             cpu: "2"
             memory: 2Gi

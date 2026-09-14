@@ -9,3 +9,4 @@ workloads:
     replicaCount: 1
 olaresEnv:
   HF_ENDPOINT: ""
+  TABLE_AUTO_ROTATE: "false"

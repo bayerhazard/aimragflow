@@ -13,7 +13,7 @@ metadata:
   description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   appid: aimragflow
-  version: '26.9.1'
+  version: '26.9.2'
   title: AIM RAGFlow
   categories:
   - AI
@@ -69,6 +69,11 @@ spec:
     Disk: appData volumes for logs, ES, MinIO, Redis
 
   upgradeDescription: |
+    v26.9.2: Ingest performance — ragflow container CPU 10 → 20 and RAM 12 → 16 GiB;
+    new env TABLE_AUTO_ROTATE (default false) skips DeepDOC per-table orientation
+    scoring. Ingestion was CPU-throttled at the 10-core limit with table analysis
+    at 100–190 s/page. Built for Olares 1.12.6.
+
     v26.9.1: Initial AIM release — RAGFlow 0.27.2 (`infiniflow/ragflow:v0.27.2`).
     Repackaged from the Olares chart 1.0.30 with Olares tuning baked in:
     MAX_CONCURRENT_CHUNK_BUILDERS=4, DOC_BULK_SIZE=50, EMBEDDING_BATCH_SIZE=16
@@ -96,8 +101,8 @@ spec:
   limitedMemory: 28Gi
   requiredDisk: 56Mi
   limitedDisk: 1Gi
-  requiredCpu: 3150m
-  limitedCpu: 13
+  requiredCpu: 4
+  limitedCpu: 24
   supportArch:
   - amd64
 
@@ -123,3 +128,10 @@ envs:
     applyOnChange: true
     valueFrom:
       envName: OLARES_USER_HUGGINGFACE_SERVICE
+  - envName: TABLE_AUTO_ROTATE
+    required: false
+    applyOnChange: true
+    default: "false"
+    type: string
+    editable: true
+    description: "DeepDOC table auto-rotation scoring (true/false). false skips per-table orientation scoring — much faster ingest."
