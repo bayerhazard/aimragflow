@@ -11,4 +11,6 @@ olaresEnv:
   HF_ENDPOINT: ""
   TABLE_AUTO_ROTATE: "false"
   MCP_ENABLED: "false"
+  MCP_MODE: "self-host"
+  MCP_API_KEY: ""
   EMBEDDING_BATCH_SIZE: "16"

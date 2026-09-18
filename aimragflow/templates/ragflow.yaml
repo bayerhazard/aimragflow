@@ -1,5 +1,6 @@
 {{- $olaresEnv := .Values.olaresEnv | default dict -}}
 {{- $mcpEnabled := eq (toString ($olaresEnv.MCP_ENABLED | default "false")) "true" -}}
+{{- $mcpMode := toString ($olaresEnv.MCP_MODE | default "self-host") -}}
 {{- $embeddingBatchSize := "16" -}}
 {{- if hasKey $olaresEnv "EMBEDDING_BATCH_SIZE" -}}
 {{- $embeddingBatchSize = toString $olaresEnv.EMBEDDING_BATCH_SIZE | default "16" -}}
@@ -89,7 +90,13 @@ spec:
           - --mcp-host=0.0.0.0
           - --mcp-port=9382
           - --mcp-base-url=http://127.0.0.1:9380
+          {{- if eq $mcpMode "host" }}
           - --mcp-mode=host
+          - --no-transport-streamable-http-enabled
+          {{- else }}
+          - --mcp-mode=self-host
+          - --mcp-host-api-key={{ .Values.olaresEnv.MCP_API_KEY }}
+          {{- end }}
           {{- end }}
         ports:
         - containerPort: 9380

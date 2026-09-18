@@ -13,7 +13,7 @@ metadata:
   description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   appid: aimragflow
-  version: '26.9.4'
+  version: '26.9.5'
   title: AIM RAGFlow
   categories:
   - AI
@@ -76,6 +76,12 @@ spec:
     Disk: appData volumes for logs, ES, MinIO, Redis
 
   upgradeDescription: |
+    v26.9.5: Configurable MCP launch mode. MCP_MODE=self-host (default) starts the
+    MCP server with --mcp-host-api-key so clients (e.g. Hermes) use /mcp without a
+    key; MCP_MODE=host keeps the official behaviour (client key, SSE only, now with
+    --no-transport-streamable-http-enabled). MCP_API_KEY holds the RAGFlow key for
+    self-host mode. MCP access stays on the internal, hidden entrance (port 9382).
+
     v26.9.4: Fix — the MCP container/Service port (9382) must always be present
     when the MCP entrance is declared; only the MCP server args are toggled by
     MCP_ENABLED. 26.9.3 made the port conditional, which blocked entrance
@@ -158,10 +164,29 @@ envs:
   - envName: MCP_ENABLED
     required: false
     applyOnChange: true
-    default: "false"
+    default: "true"
     type: string
     editable: true
     description: "Enable the separate RAGFlow MCP entrance (hidden from desktop). Use its HTTPS address with /mcp (Streamable HTTP) or /sse (SSE). Clients must provide a RAGFlow API key. Disabled by default."
+  - envName: MCP_MODE
+    required: false
+    applyOnChange: true
+    default: "self-host"
+    type: string
+    editable: true
+    description: "MCP launch mode: 'self-host' (recommended — server holds the API key; /mcp and /sse available) or 'host' (clients pass their own key; SSE only)."
+    options:
+      - title: Self-host (server key, /mcp)
+        value: "self-host"
+      - title: Host (client key, /sse)
+        value: "host"
+  - envName: MCP_API_KEY
+    required: false
+    applyOnChange: true
+    default: ""
+    type: password
+    editable: true
+    description: "RAGFlow API key (ragflow-...) the MCP server uses in self-host mode. Required when MCP_ENABLED=true and MCP_MODE=self-host."
   - envName: EMBEDDING_BATCH_SIZE
     required: false
     applyOnChange: true
