@@ -1,8 +1,9 @@
 # AIM RAGFlow — Post-Install & Hermes Runbook
 
-App: **aimragflow** · chart `26.9.1` · upstream RAGFlow `0.27.2`
-Default entrance: `https://0112315c.<user>.olares.de` (appID `0112315c`)
-Custom route: `https://kb.<user>.olares.de` (third-level `kb`, set after install)
+App: **aimragflow** · chart `26.9.4` · upstream RAGFlow `0.27.2`
+Web/API entrance: `https://kb.<user>.olares.de` (= default `https://0112315c0.<user>.olares.de`)
+MCP entrance: `https://0112315c1.<user>.olares.de` (port 9382, `internal`, hidden) — off by default (`MCP_ENABLED=false`)
+**Achtung:** die frühere `https://0112315c.<user>.olares.de` liefert seit dem 2. Entrance **421**.
 Namespace: `aimragflow-aimighty`
 Image: `ghcr.io/bayerhazard/aimragflow:v0.27.2-1` (must stay **public** in ghcr)
 
@@ -158,9 +159,9 @@ Hermes already has `agent.gateway_timeout: 1800`; leave it.
 ## Hermes skill — was der Agent wissen muss
 
 ### Endpoints & Auth
-- Base: `https://0112315c.aimighty.olares.de` (identisch `https://kb.<user>.olares.de`).
-- **Agentic RAG (bevorzugt):** `POST /api/v1/chats_openai/<chat_id>/chat/completions`
-  (OpenAI-kompatibel, SSE-fähig).
+- Base: `https://kb.aimighty.olares.de` (Default `https://0112315c0.aimighty.olares.de`; **nicht** die alte `0112315c…` → 421).
+- **Agentic RAG (bevorzugt):** `POST /api/v1/openai/<chat_id>/chat/completions`
+  (OpenAI-kompatibel, SSE-fähig; `chats_openai/...` ist deprecated).
 - **Nur Chunks:** `POST /api/v1/retrieval` mit
   `{question, dataset_ids, top_k, similarity_threshold, vector_similarity_weight, rerank_id, keyword, highlight}`.
 - Datasets enumerieren: `GET /api/v1/datasets`.

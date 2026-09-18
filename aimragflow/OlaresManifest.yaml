@@ -13,7 +13,7 @@ metadata:
   description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   appid: aimragflow
-  version: '26.9.3'
+  version: '26.9.4'
   title: AIM RAGFlow
   categories:
   - AI
@@ -76,6 +76,11 @@ spec:
     Disk: appData volumes for logs, ES, MinIO, Redis
 
   upgradeDescription: |
+    v26.9.4: Fix — the MCP container/Service port (9382) must always be present
+    when the MCP entrance is declared; only the MCP server args are toggled by
+    MCP_ENABLED. 26.9.3 made the port conditional, which blocked entrance
+    reconciliation. Behaviour otherwise identical to 26.9.3.
+
     v26.9.3: Adopt Olares chart 1.0.38 integration — `--init-model-provider-tables`
     (idempotent model-provider table migration) and a separate MCP entrance (port
     9382, internal, hidden; toggle with MCP_ENABLED, default false). EMBEDDING_BATCH_SIZE

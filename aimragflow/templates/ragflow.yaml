@@ -95,10 +95,8 @@ spec:
         - containerPort: 9380
         - containerPort: 9381
         - containerPort: 80
-        {{- if $mcpEnabled }}
         - name: mcp
           containerPort: 9382
-        {{- end }}
         env:
         - name: HF_ENDPOINT
           value: '{{ .Values.olaresEnv.HF_ENDPOINT }}'
@@ -209,10 +207,8 @@ spec:
   - name: http
     port: 80
     targetPort: 80
-  {{- if $mcpEnabled }}
   - name: mcp
     port: 9382
     targetPort: mcp
-  {{- end }}
   selector:
     app: aimragflow
