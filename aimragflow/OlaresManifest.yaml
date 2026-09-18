@@ -13,7 +13,7 @@ metadata:
   description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   appid: aimragflow
-  version: '26.9.2'
+  version: '26.9.3'
   title: AIM RAGFlow
   categories:
   - AI
@@ -26,6 +26,13 @@ entrances:
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   authLevel: private
   openMethod: window
+- name: mcp
+  host: aimragflow
+  port: 9382
+  title: AIM RAGFlow MCP
+  icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
+  authLevel: internal
+  invisible: true
 
 permission:
   appData: true
@@ -69,6 +76,14 @@ spec:
     Disk: appData volumes for logs, ES, MinIO, Redis
 
   upgradeDescription: |
+    v26.9.3: Adopt Olares chart 1.0.38 integration — `--init-model-provider-tables`
+    (idempotent model-provider table migration) and a separate MCP entrance (port
+    9382, internal, hidden; toggle with MCP_ENABLED, default false). EMBEDDING_BATCH_SIZE
+    is now an app setting (default 16; set 1 for conservative local-embedding memory).
+    Kept AIM tuning: CPU 20 / RAM 16 GiB, TABLE_AUTO_ROTATE=false, DOC_BULK_SIZE=50,
+    MAX_CONCURRENT_CHUNK_BUILDERS=4, close_stale(age=3600), no Infinity companion.
+    Built for Olares 1.12.6.
+
     v26.9.2: Ingest performance — ragflow container CPU 10 → 20 and RAM 12 → 16 GiB;
     new env TABLE_AUTO_ROTATE (default false) skips DeepDOC per-table orientation
     scoring. Ingestion was CPU-throttled at the 10-core limit with table analysis
@@ -135,3 +150,17 @@ envs:
     type: string
     editable: true
     description: "DeepDOC table auto-rotation scoring (true/false). false skips per-table orientation scoring — much faster ingest."
+  - envName: MCP_ENABLED
+    required: false
+    applyOnChange: true
+    default: "false"
+    type: string
+    editable: true
+    description: "Enable the separate RAGFlow MCP entrance (hidden from desktop). Use its HTTPS address with /mcp (Streamable HTTP) or /sse (SSE). Clients must provide a RAGFlow API key. Disabled by default."
+  - envName: EMBEDDING_BATCH_SIZE
+    required: false
+    applyOnChange: true
+    default: "16"
+    type: int
+    editable: true
+    description: "Chunks embedded per request. 16 = tested on Olares One / local AIM embedder. Use 1 for conservative memory behavior (official default), increase for cloud embedding services."

@@ -10,3 +10,5 @@ workloads:
 olaresEnv:
   HF_ENDPOINT: ""
   TABLE_AUTO_ROTATE: "false"
+  MCP_ENABLED: "false"
+  EMBEDDING_BATCH_SIZE: "16"

@@ -1,3 +1,12 @@
+{{- $olaresEnv := .Values.olaresEnv | default dict -}}
+{{- $mcpEnabled := eq (toString ($olaresEnv.MCP_ENABLED | default "false")) "true" -}}
+{{- $embeddingBatchSize := "16" -}}
+{{- if hasKey $olaresEnv "EMBEDDING_BATCH_SIZE" -}}
+{{- $embeddingBatchSize = toString $olaresEnv.EMBEDDING_BATCH_SIZE | default "16" -}}
+{{- end -}}
+{{- if not (regexMatch "^[1-9][0-9]*$" $embeddingBatchSize) -}}
+{{- fail "EMBEDDING_BATCH_SIZE must be a positive integer" -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -74,10 +83,22 @@ spec:
         image: "ghcr.io/bayerhazard/aimragflow:v0.27.2-1"
         args:
           - --enable-adminserver
+          - --init-model-provider-tables
+          {{- if $mcpEnabled }}
+          - --enable-mcpserver
+          - --mcp-host=0.0.0.0
+          - --mcp-port=9382
+          - --mcp-base-url=http://127.0.0.1:9380
+          - --mcp-mode=host
+          {{- end }}
         ports:
         - containerPort: 9380
         - containerPort: 9381
         - containerPort: 80
+        {{- if $mcpEnabled }}
+        - name: mcp
+          containerPort: 9382
+        {{- end }}
         env:
         - name: HF_ENDPOINT
           value: '{{ .Values.olaresEnv.HF_ENDPOINT }}'
@@ -94,7 +115,7 @@ spec:
         - name: DOC_BULK_SIZE
           value: '50'
         - name: EMBEDDING_BATCH_SIZE
-          value: '16'
+          value: {{ $embeddingBatchSize | quote }}
         - name: MYSQL_PORT
           value: "{{ .Values.mysql.port }}"
         - name: MYSQL_HOST
@@ -185,7 +206,13 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   ports:
-  - port: 80
+  - name: http
+    port: 80
     targetPort: 80
+  {{- if $mcpEnabled }}
+  - name: mcp
+    port: 9382
+    targetPort: mcp
+  {{- end }}
   selector:
     app: aimragflow
