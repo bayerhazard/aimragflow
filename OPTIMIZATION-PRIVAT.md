@@ -192,3 +192,42 @@ VRAM neben Reranker/TTS. Für den 36-Dokumente-Bestand nicht nötig.
 3. Alle 36 Dokumente neu parsen (Idle-Zeit einplanen: Scan ≈ 4–5 min/Dokument).
 4. Chat-Assistenten: Thinking=Medium, Rerank = AIM Reranker, Top-N ~8–16.
 5. Retrieval-Stichproben je Dokumentklasse; erst dann ggf. Pipeline ergänzen.
+
+## PaddleOCR-VL statt DeepDOC — Voll-Ingest & Performance (2026-09-19)
+
+Chart **26.9.9**: `PADDLEOCR_BASE_URL` hart auf die neue App **`aimpaddleocr`**
+(`http://sharedentrances-aimpaddleocr.aimpaddleocr-shared`) verdrahtet.
+Alle 36 Docs neu geparst (PaddleOCR-VL): **0 Fehler, 467 Chunks, ~30–35 min**.
+
+### Erkennungsqualität (Stichproben)
+| Doc | DeepDOC | PaddleOCR-VL |
+|---|---|---|
+| Personalausweis | OCR-Rauschen (»人人人«), nur ausreichend | sauberes bilinguales Transkript, Felder intakt |
+| Renteninformation | Textlayer defekt → »Abt.VersicherungundRente« | **lesbar**: »Abt. Versicherung und Rente«, Adresse korrekt |
+| Impfpass | 274 s, 9 Chunks, Header verrauscht | sauberer mehrsprachiger Header, 18 Chunks |
+| Tabellen (Tag Heuer/HUK24/Pensionskasse) | HTML-Tabellen | HTML-Tabellen, konsistent |
+
+Chat-Gegenprobe (Assistent „Privat"): Augenfarbe → **Grünblau** (Quelle Perso);
+Impfung → **Gelbfieber, 01.11.2009, Stamaril D5079-6**; Rente → wertebasiert.
+
+### Geschwindigkeit (Ist)
+| Größe | Wert |
+|---|---|
+| Page-Latenz PaddleOCR-VL | 5 s (einfach) – 15 s (dicht), server-serialisiert |
+| Durchsatz | ~4 Seiten/min (unabhängig von Concurrency) |
+| Handbuch (247 S.) | ~20 min wall (12-Seiten-Blöcke) |
+| Embedding | ~1023 s Summe, ~190 tok/s, ~2,2 s/Chunk |
+| RAM | Nodes 46–52 GiB frei; Embedder-App 27 GiB, PaddleOCR 2,4 GiB, RAGFlow 9,6 GiB |
+| GPU | Worker 14,7 GiB / 24 % (PaddleOCR nicht GPU-saturiert) |
+
+### Optimierungs-Hebel (priorisiert)
+1. **Hybrid-Parser:** PaddleOCR nur für Scans/Formulare/defekte Textlayer (Perso,
+   Reisepass, Impfpass, Fielmann, Renteninfo, Pensionskasse, …); digitale Text-PDFs
+   (Äthiopien, Handbuch, Teilnahmelisten) auf `Plain Text` → spart Parsezeit ohne
+   Qualitätsverlust. Größter Hebel, weicht aber bewusst von „ein Parser für alles" ab.
+2. **PaddleOCR parallelisieren:** Server ist single-process/serialisiert (GPU 24 %).
+   Mehr Worker/Replicas oder echtes Batching würden den Durchsatz multiplizieren —
+   erfordert Chart-Anpassung der App `aimpaddleocr`.
+3. **Kein CPU/RAM-Hebel** (getestet: 6 Cores / 8 GiB = keine Änderung).
+4. **Embedder** bei 0,77 Texte/s ausgereizt; GPU-Embedder nur bei wachsender
+   Ingest-Menge sinnvoll.

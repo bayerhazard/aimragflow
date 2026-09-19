@@ -217,21 +217,30 @@ separate MySQL DB). Export/re-ingest first if needed.
 
 ---
 
-## PaddleOCR-VL als PDF-Parser (ab Chart 26.9.8)
+## PaddleOCR-VL als PDF-Parser (ab Chart 26.9.9)
 
 Ziel: **ein Dataset, keine Pro-Dokument-Settings** — PaddleOCR-VL parst Text-PDFs UND Scans sauber.
 
-1. Olares-App **`paddleocrv3`** (market.olares) installieren — PaddleOCR-VL 3.4, Blackwell-Image, braucht **8 GiB GPU** (Worker-5090). In-Cluster-Endpoint: **`http://sharedentrances-paddleocr.paddleocrv3-shared`** (`POST /layout-parsing`).
-2. aimragflow **26.9.8**: Envs `PADDLEOCR_BASE_URL` + `PADDLEOCR_ALGORITHM=PaddleOCR-VL` sind **hart im Template** verdrahtet (Olares-Values-Freeze umgangen — `settings apps env set` scheitert außerdem an `HF_ENDPOINT`).
-3. **Upstream-Bug:** `ensure_paddleocr_from_env` scheitert in 0.27.2 (`'int' object has no attribute 'id'`) → OCR-Provider/Modell **manuell per API** anlegen:
+1. Olares-App **`aimpaddleocr`** (market.AImighty, „AIM PaddleOCR" 26.9.1; Image `beclab/bleachzou-paddleocr3.4-nividia-gpu-sm120-offline`) installieren — braucht **8 GiB GPU** (Worker-5090). In-Cluster-Endpoint: **`http://sharedentrances-aimpaddleocr.aimpaddleocr-shared`** (`POST /layout-parsing`, JSON-Body `{"file":"<base64>","fileType":1}`).
+2. aimragflow **26.9.9**: `PADDLEOCR_BASE_URL` + `PADDLEOCR_ALGORITHM=PaddleOCR-VL` sind **hart im Template** verdrahtet (Olares-Values-Freeze umgangen — `settings apps env set` scheitert außerdem an `HF_ENDPOINT`).
+   Nach jedem `market upgrade`: Entrance `aimragflow` wieder auf `auth-level public` setzen und die Provider-Instanz neu anlegen (siehe 3).
+3. **Upstream-Bug:** `ensure_paddleocr_from_env` scheitert in 0.27.2 (`'int' object has no attribute 'id'`); der env-Pfad liefert dann still 0 Chunks. OCR-Provider/Modell **manuell per API** anlegen:
    ```
+   DELETE /api/v1/providers/PaddleOCR/instances   {"instances":["<alle IDs/Names>"]}   # Duplikate per ID, ggf. mehrfach
    POST /api/v1/providers/PaddleOCR/instances
-   {"instance_name":"paddleocr-aimighty","api_key":"{\"PADDLEOCR_BASE_URL\":\"http://sharedentrances-paddleocr.paddleocrv3-shared\",\"PADDLEOCR_ALGORITHM\":\"PaddleOCR-VL\"}","base_url":"http://sharedentrances-paddleocr.paddleocrv3-shared","region":"","model_info":{}}
+   {"instance_name":"paddleocr-aimighty","api_key":"{\"PADDLEOCR_BASE_URL\":\"http://sharedentrances-aimpaddleocr.aimpaddleocr-shared\",\"PADDLEOCR_ALGORITHM\":\"PaddleOCR-VL\"}","base_url":"http://sharedentrances-aimpaddleocr.aimpaddleocr-shared","region":"","model_info":[]}
    POST /api/v1/providers/PaddleOCR/instances/paddleocr-aimighty/models
    {"model_name":"paddleocr-aimighty","model_type":"ocr"}
    ```
+   `model_info` MUSS ein Array sein (`[]`), sonst `model_info must be an array`.
 4. Dataset: `PUT /api/v1/datasets/{id}` `{"parser_config":{"layout_recognize":"PaddleOCR"}}`.
    **Wichtig:** Dokumente mit **Doc-Level-Override** (z. B. alte VLM-UUID) nutzen weiter den Override → je Doc `PATCH .../documents/{doc}` mit `{"parser_config":{"layout_recognize":"PaddleOCR", ...}}`.
-5. `layout_recognize="PaddleOCR"` ist ein bekannter Parser → **kein MinerU-Guard-Problem**, kein `mineru_*`-Trick, kein Zweit-Dataset nötig.
+5. Re-Parse bestehender Docs: erst `PATCH .../documents/{doc}` `{"run":"UNSTART"}`, dann `POST .../chunks` `{"document_ids":[...]}` (DONE-Docs werden sonst nicht neu ausgeführt).
+6. `layout_recognize="PaddleOCR"` ist ein bekannter Parser → **kein MinerU-Guard-Problem**, kein `mineru_*`-Trick, kein Zweit-Dataset nötig.
 
-Ergebnis (verifiziert): Personalausweis → sauberes Transkript („Augenfarbe … GRÜNBLAU"), Chat antwortet mit Quelle.
+Ergebnis (verifiziert 2026-09-19): alle 36 Docs, 0 Fehler, 467 Chunks. Erkennung deutlich besser als DeepDOC (Renteninformation-Textlayer jetzt lesbar; Perso/Impfpass sauber). Chat antwortet korrekt mit Quelle (Augenfarbe GRÜNBLAU; Impfung Gelbfieber 01.11.2009 Stamaril).
+
+### Performance (2026-09-19, 36 Docs / 45 MB / 467 Chunks)
+- Wall-Time ~30–35 min; **PaddleOCR-VL ist der Engpass**: ~15 s/dichte Seite, ~5 s/einfache Seite. Der Server **serialisiert** (4 parallele Requests = gleiche Gesamtzeit, ~4 Seiten/min).
+- Das `algorithm`-Feld wird vom Server **ignoriert** (PaddleOCR-VL / PP-OCRv5 / PP-StructureV3 → identisch ~15 s). CPU-Limit 2→6 Cores und RAM 4→8 GiB ändern nichts → **nicht CPU-limitiert**; GPU nur ~24 %.
+- **Embedding CPU-gebunden:** Summe ~1023 s (~190 tok/s, entspricht dem Embedder-Baseline 0,77 Texte/s), ~2,2 s/Chunk. Kein RAM-Engpass (Nodes ~46–52 GiB frei).
