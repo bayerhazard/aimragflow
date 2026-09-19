@@ -14,5 +14,5 @@ olaresEnv:
   MCP_MODE: "self-host"
   MCP_API_KEY: ""
   EMBEDDING_BATCH_SIZE: "16"
-  PADDLEOCR_BASE_URL: ""
+  PADDLEOCR_BASE_URL: "http://sharedentrances-paddleocr.paddleocrv3-shared"
   PADDLEOCR_ALGORITHM: "PaddleOCR-VL"

@@ -1,6 +1,6 @@
 # AIM RAGFlow — Post-Install & Hermes Runbook
 
-App: **aimragflow** · chart `26.9.4` · upstream RAGFlow `0.27.2`
+App: **aimragflow** · chart `26.9.8` · upstream RAGFlow `0.27.2`
 Web/API entrance: `https://kb.<user>.olares.de` (= default `https://0112315c0.<user>.olares.de`)
 MCP entrance: `https://0112315c1.<user>.olares.de` (port 9382, `internal`, hidden) — off by default (`MCP_ENABLED=false`)
 **Achtung:** die frühere `https://0112315c.<user>.olares.de` liefert seit dem 2. Entrance **421**.
@@ -214,3 +214,24 @@ olares-cli market uninstall ragflow --watch
 
 Existing data in the old app is **not** migrated (separate appData/appCache paths,
 separate MySQL DB). Export/re-ingest first if needed.
+
+---
+
+## PaddleOCR-VL als PDF-Parser (ab Chart 26.9.8)
+
+Ziel: **ein Dataset, keine Pro-Dokument-Settings** — PaddleOCR-VL parst Text-PDFs UND Scans sauber.
+
+1. Olares-App **`paddleocrv3`** (market.olares) installieren — PaddleOCR-VL 3.4, Blackwell-Image, braucht **8 GiB GPU** (Worker-5090). In-Cluster-Endpoint: **`http://sharedentrances-paddleocr.paddleocrv3-shared`** (`POST /layout-parsing`).
+2. aimragflow **26.9.8**: Envs `PADDLEOCR_BASE_URL` + `PADDLEOCR_ALGORITHM=PaddleOCR-VL` sind **hart im Template** verdrahtet (Olares-Values-Freeze umgangen — `settings apps env set` scheitert außerdem an `HF_ENDPOINT`).
+3. **Upstream-Bug:** `ensure_paddleocr_from_env` scheitert in 0.27.2 (`'int' object has no attribute 'id'`) → OCR-Provider/Modell **manuell per API** anlegen:
+   ```
+   POST /api/v1/providers/PaddleOCR/instances
+   {"instance_name":"paddleocr-aimighty","api_key":"{\"PADDLEOCR_BASE_URL\":\"http://sharedentrances-paddleocr.paddleocrv3-shared\",\"PADDLEOCR_ALGORITHM\":\"PaddleOCR-VL\"}","base_url":"http://sharedentrances-paddleocr.paddleocrv3-shared","region":"","model_info":{}}
+   POST /api/v1/providers/PaddleOCR/instances/paddleocr-aimighty/models
+   {"model_name":"paddleocr-aimighty","model_type":"ocr"}
+   ```
+4. Dataset: `PUT /api/v1/datasets/{id}` `{"parser_config":{"layout_recognize":"PaddleOCR"}}`.
+   **Wichtig:** Dokumente mit **Doc-Level-Override** (z. B. alte VLM-UUID) nutzen weiter den Override → je Doc `PATCH .../documents/{doc}` mit `{"parser_config":{"layout_recognize":"PaddleOCR", ...}}`.
+5. `layout_recognize="PaddleOCR"` ist ein bekannter Parser → **kein MinerU-Guard-Problem**, kein `mineru_*`-Trick, kein Zweit-Dataset nötig.
+
+Ergebnis (verifiziert): Personalausweis → sauberes Transkript („Augenfarbe … GRÜNBLAU"), Chat antwortet mit Quelle.
