@@ -14,3 +14,5 @@ olaresEnv:
   MCP_MODE: "self-host"
   MCP_API_KEY: ""
   EMBEDDING_BATCH_SIZE: "16"
+  PADDLEOCR_BASE_URL: ""
+  PADDLEOCR_ALGORITHM: "PaddleOCR-VL"

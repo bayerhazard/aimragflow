@@ -13,7 +13,7 @@ metadata:
   description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   appid: aimragflow
-  version: '26.9.5'
+  version: '26.9.6'
   title: AIM RAGFlow
   categories:
   - AI
@@ -76,6 +76,13 @@ spec:
     Disk: appData volumes for logs, ES, MinIO, Redis
 
   upgradeDescription: |
+    v26.9.6: Optional self-hosted PaddleOCR-VL as the PDF parser. New envs
+    PADDLEOCR_BASE_URL (e.g. http://sharedentrances-paddleocr.paddleocrv3-shared)
+    and PADDLEOCR_ALGORITHM (default PaddleOCR-VL). When set, RAGFlow
+    auto-provisions a PaddleOCR OCR model; select "PaddleOCR" as the dataset PDF
+    parser (layout_recognize) for uniform, high-quality parsing of text AND scans
+    in a single dataset — no per-document config, no VLM/MinerU workarounds.
+
     v26.9.5: Configurable MCP launch mode. MCP_MODE=self-host (default) starts the
     MCP server with --mcp-host-api-key so clients (e.g. Hermes) use /mcp without a
     key; MCP_MODE=host keeps the official behaviour (client key, SSE only, now with
@@ -194,3 +201,17 @@ envs:
     type: int
     editable: true
     description: "Chunks embedded per request. 16 = tested on Olares One / local AIM embedder. Use 1 for conservative memory behavior (official default), increase for cloud embedding services."
+  - envName: PADDLEOCR_BASE_URL
+    required: false
+    applyOnChange: true
+    default: ""
+    type: string
+    editable: true
+    description: "Optional: base URL of a self-hosted PaddleOCR-VL server (e.g. the Olares paddleocrv3 shared entrance). When set, RAGFlow auto-provisions a PaddleOCR OCR model selectable as the PDF parser."
+  - envName: PADDLEOCR_ALGORITHM
+    required: false
+    applyOnChange: true
+    default: "PaddleOCR-VL"
+    type: string
+    editable: true
+    description: "PaddleOCR algorithm used for the self-hosted server: PaddleOCR-VL (default), PP-OCRv5, PP-StructureV3, ..."

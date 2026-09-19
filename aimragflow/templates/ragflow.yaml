@@ -121,6 +121,12 @@ spec:
           value: '50'
         - name: EMBEDDING_BATCH_SIZE
           value: {{ $embeddingBatchSize | quote }}
+        {{- if .Values.olaresEnv.PADDLEOCR_BASE_URL }}
+        - name: PADDLEOCR_BASE_URL
+          value: {{ .Values.olaresEnv.PADDLEOCR_BASE_URL | quote }}
+        - name: PADDLEOCR_ALGORITHM
+          value: {{ .Values.olaresEnv.PADDLEOCR_ALGORITHM | default "PaddleOCR-VL" | quote }}
+        {{- end }}
         - name: MYSQL_PORT
           value: "{{ .Values.mysql.port }}"
         - name: MYSQL_HOST
