@@ -13,7 +13,7 @@ metadata:
   description: AIM RAGFlow — RAG engine optimized for Olares and Hermes Agent.
   icon: https://app.cdn.olares.com/appstore/ragflow/icon.png
   appid: aimragflow
-  version: '26.9.8'
+  version: '26.9.9'
   title: AIM RAGFlow
   categories:
   - AI
@@ -76,8 +76,15 @@ spec:
     Disk: appData volumes for logs, ES, MinIO, Redis
 
   upgradeDescription: |
+    v26.9.9: Point the PDF parser at the new AIM PaddleOCR app. The PaddleOCR-VL
+    base URL is now hardcoded in the chart
+    (http://sharedentrances-aimpaddleocr.aimpaddleocr-shared) so it survives the
+    frozen values snapshot; the previous PADDLEOCR_BASE_URL value pointed at the
+    retired paddleocrv3 shared entrance and made every PDF parse fail with a DNS
+    error (0 chunks). PADDLEOCR_ALGORITHM stays PaddleOCR-VL.
+
     v26.9.6: Optional self-hosted PaddleOCR-VL as the PDF parser. New envs
-    PADDLEOCR_BASE_URL (e.g. http://sharedentrances-paddleocr.paddleocrv3-shared)
+    PADDLEOCR_BASE_URL (e.g. http://sharedentrances-aimpaddleocr.aimpaddleocr-shared)
     and PADDLEOCR_ALGORITHM (default PaddleOCR-VL). When set, RAGFlow
     auto-provisions a PaddleOCR OCR model; select "PaddleOCR" as the dataset PDF
     parser (layout_recognize) for uniform, high-quality parsing of text AND scans
@@ -204,10 +211,10 @@ envs:
   - envName: PADDLEOCR_BASE_URL
     required: false
     applyOnChange: true
-    default: "http://sharedentrances-paddleocr.paddleocrv3-shared"
+    default: "http://sharedentrances-aimpaddleocr.aimpaddleocr-shared"
     type: string
     editable: true
-    description: "Optional: base URL of a self-hosted PaddleOCR-VL server (e.g. the Olares paddleocrv3 shared entrance). When set, RAGFlow auto-provisions a PaddleOCR OCR model selectable as the PDF parser."
+    description: "Base URL of the self-hosted PaddleOCR-VL server (the AIM PaddleOCR shared entrance). Hardcoded in the chart; RAGFlow auto-provisions a PaddleOCR OCR model selectable as the PDF parser."
   - envName: PADDLEOCR_ALGORITHM
     required: false
     applyOnChange: true
