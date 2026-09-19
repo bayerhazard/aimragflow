@@ -231,3 +231,31 @@ Impfung → **Gelbfieber, 01.11.2009, Stamaril D5079-6**; Rente → wertebasiert
 3. **Kein CPU/RAM-Hebel** (getestet: 6 Cores / 8 GiB = keine Änderung).
 4. **Embedder** bei 0,77 Texte/s ausgereizt; GPU-Embedder nur bei wachsender
    Ingest-Menge sinnvoll.
+
+## Hermes ↔ RAGFlow Retrieval-Optimierung (2026-09-19)
+
+A/B-Test über die Retrieval-API (6 Fragen, Ground-Truth = erwartetes Dokument):
+
+| Config | rec@1 | rec@3 | MRR | Ø Latenz |
+|---|---|---|---|---|
+| ohne Rerank, vec 0.3, kwF, thr 0.05 (alt) | 4/6 | 4/6 | 0.72 | 2,1 s |
+| **ohne Rerank, vec 0.6, kwT, thr 0.20 (neu)** | **5/6** | **6/6** | **0.92** | 4,5 s |
+| Rerank, vec 0.3 (kwF) | 0/6 | 3/6 | 0.29 | 5,1 s |
+| Rerank, vec 0.5–0.6 (kwT) | 0/6 | 1–2/6 | ≤0.23 | 7–10 s |
+
+**Ergebnis: Der Reranker (Qwen3-Reranker-0.6B) verschlechtert das Ranking
+deutlich (rec@1 5/6 → 0/6) → deaktiviert.** Vorteil nebenbei: die Reranker-App
+(`aimrerqwen3vllm`, ~5,5 GiB VRAM) wird nicht mehr benötigt.
+
+Gesetzt:
+- **Assistenten** Privat/Privat-Deep: `top_k 256`, `top_n 30`, `similarity_threshold 0.2`,
+  `vector_similarity_weight 0.6`, `keyword true`, `rerank_id` leer.
+- **Hermes**: MCP-Tool auf `ragflow_retrieval` begrenzt; `mcp_discovery_timeout` 1,5 → 8
+  (Datei enthielt zusätzlich 45 NUL-Bytes am Ende → bereinigt).
+- **Skill `olares-ragflow`**: Two-Tier (Tier 1 MCP-Retrieval, Tier 2 Agentic-Chat),
+  feste Parameter, Zitatpflicht; Helper `ragflow-ask.sh retrieve "<q>"`.
+- **Tier-1-Parameter** (MCP+Script): `dataset_ids` explizit, `page_size 20`, `top_k 256`,
+  `thr 0.2`, `vec 0.6`, `keyword true`, **kein `rerank_id`**.
+
+Verifiziert: Tier-1 „Augenfarbe" → Personalausweis-Chunk (sim 0,49, GRÜNBLAU);
+Tier-2 Chat (ohne Rerank) → korrekte, zitierte Antwort in 8–9 s.
